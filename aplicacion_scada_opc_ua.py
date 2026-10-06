@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 import random
 import math
+import io
 
 # Intentar importar la librería OPC UA
 try:
@@ -60,10 +61,7 @@ st.markdown("""
         line-height: 1.6 !important;
     }
 
-    /* =========================================================
-       FIX CORRECCIÓN DE DESPLEGABLES / SELECTBOX EN MODO OSCURO
-       ========================================================= */
-    /* 1. Cajón del Selectbox en estado cerrado */
+    /* FIX CORRECCIÓN DE DESPLEGABLES / SELECTBOX EN MODO OSCURO */
     div[data-testid="stSelectbox"] > div > div {
         background-color: #1E293B !important;
         color: #F8FAFC !important;
@@ -81,7 +79,6 @@ st.markdown("""
         fill: #38BDF8 !important;
     }
 
-    /* 2. Menús desplegables flotantes (Selectbox y data_editor) */
     div[data-baseweb="select"] > div,
     div[data-baseweb="popover"],
     div[data-baseweb="menu"],
@@ -91,7 +88,6 @@ st.markdown("""
         border: 1px solid #334155 !important;
     }
 
-    /* Opciones individuales dentro del desplegable */
     li[role="option"],
     div[role="option"] {
         background-color: #1E293B !important;
@@ -99,7 +95,6 @@ st.markdown("""
         font-weight: 500 !important;
     }
 
-    /* Opción activa / Hover */
     li[role="option"]:hover,
     div[role="option"]:hover,
     li[aria-selected="true"],
@@ -108,7 +103,6 @@ st.markdown("""
         color: #38BDF8 !important;
     }
 
-    /* Celdas de edición en st.data_editor */
     [data-testid="stDataEditor"] input,
     [data-testid="stDataEditor"] select {
         background-color: #1E293B !important;
@@ -142,23 +136,6 @@ st.markdown("""
         transform: translateY(-2px) !important;
     }
 
-    /* Botón Iniciar Adquisición */
-    div.stButton > button:has(div:contains("INICIAR")) {
-        background: linear-gradient(135deg, #059669, #10B981) !important;
-        color: #FFFFFF !important;
-        border: 1px solid #34D399 !important;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35) !important;
-    }
-
-    /* Botón Detener Adquisición */
-    div.stButton > button:has(div:contains("DETENER")) {
-        background: linear-gradient(135deg, #DC2626, #EF4444) !important;
-        color: #FFFFFF !important;
-        border: 1px solid #F87171 !important;
-        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.35) !important;
-    }
-
-    /* Pestañas (Tabs) */
     button[data-baseweb="tab"] p {
         color: #94A3B8 !important;
         font-weight: 600 !important;
@@ -170,7 +147,6 @@ st.markdown("""
         font-weight: 800 !important;
     }
 
-    /* Imágenes */
     div[data-testid="stImage"] {
         display: flex !important;
         justify-content: center !important;
@@ -188,7 +164,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 3. Generación Interna de NodeID Adaptativa por Marca
+# Generación Interna de NodeID Adaptativa por Marca
 def generar_node_id_interno(bloque_o_prog, variable, marca="Siemens (OPC UA)"):
     bloque_clean = str(bloque_o_prog).strip() if pd.notna(bloque_o_prog) and str(bloque_o_prog).strip() != "" else ""
     var_clean = str(variable).strip()
@@ -225,9 +201,6 @@ def obtener_variables_iniciales(marca):
         {col_header: default_val, "Nombre de Variable": "Bomba_Activa", "Tipo de Dato": "BOOL", "Unidad": "Estado"}
     ])
 
-# ==============================================================================
-# FUNCIONALIDAD DE SIMULACIÓN POR TIPO DE VARIABLE
-# ==============================================================================
 def generar_valor_simulado(var_nombre, tipo_var, estado_anterior):
     t = datetime.now().timestamp()
     
@@ -253,7 +226,7 @@ def generar_valor_simulado(var_nombre, tipo_var, estado_anterior):
         val_simulado = offset + amplitud * math.sin(frecuencia * t + offset_fase) + ruido
         return round(val_simulado, 2)
 
-# 4. Inicialización de Estados de Sesión
+# Inicialización de Estados de Sesión
 if 'idioma' not in st.session_state:
     st.session_state['idioma'] = "ES"
 if 'pantalla' not in st.session_state:
@@ -269,12 +242,10 @@ if 'variables_config' not in st.session_state:
 if 'mi_lista_de_datos' not in st.session_state:
     cols = ["Fecha_Hora"] + list(st.session_state['variables_config']['Nombre de Variable'])
     st.session_state['mi_lista_de_datos'] = pd.DataFrame(columns=cols)
-if 'adquisicion_activa' not in st.session_state:
-    st.session_state['adquisicion_activa'] = False
 if 'ultimos_valores_sim' not in st.session_state:
     st.session_state['ultimos_valores_sim'] = {}
 
-# 5. Encabezado Fijo
+# Encabezado Fijo
 top_col1, top_col2, top_col3 = st.columns([6, 2.5, 1.5])
 with top_col1:
     st.title("🌐 PROTOCOLO INDUSTRIAL OPC UA")
@@ -293,9 +264,7 @@ with top_col3:
 
 st.markdown("---")
 
-# ==============================================================================
-# PANTALLA 1: SELECCIÓN DE SERVIDOR / MARCA PLC
-# ==============================================================================
+# PANTALLA 1: SELECCIÓN DE SERVIDOR
 if st.session_state['pantalla'] == "INICIO":
     st.subheader("🎓 SELECCIÓN DE SERVIDOR OPC UA" if st.session_state['idioma'] == "ES" else "🎓 OPC UA SERVER SELECTION")
     st.markdown(
@@ -330,9 +299,7 @@ if st.session_state['pantalla'] == "INICIO":
             st.session_state['pantalla'] = "CONFIGURACION"
             st.rerun()
 
-# ==============================================================================
-# GUÍA / MANUAL DE CONFIGURACIÓN Y DIRECCIONAMIENTO
-# ==============================================================================
+# GUÍA DE CONFIGURACIÓN
 elif st.session_state['pantalla'] == "GUIA":
     st.subheader("📚 Guía de Configuración y Direccionamiento OPC UA" if st.session_state['idioma'] == "ES" else "📚 OPC UA Configuration & Tagging Guide")
 
@@ -353,9 +320,7 @@ elif st.session_state['pantalla'] == "GUIA":
     with tab_guide_sch:
         st.markdown("### ⚡ Schneider Electric (Modicon M241 / M251 / M262 / M580)\n* **Sintaxis NodeID:** `ns=2;s=Application.GVL.<VARIABLE>`")
 
-# ==============================================================================
-# PANTALLA 2: CONFIGURACIÓN OPC UA & MODO SIMULACIÓN
-# ==============================================================================
+# PANTALLA 2: CONFIGURACIÓN
 elif st.session_state['pantalla'] == "CONFIGURACION":
     marca_actual = st.session_state.get('marca_plc', 'Universal')
     st.subheader(f"⚙️ Configuración OPC UA: {marca_actual}" if st.session_state['idioma'] == "ES" else f"⚙️ OPC UA Configuration: {marca_actual}")
@@ -368,7 +333,7 @@ elif st.session_state['pantalla'] == "CONFIGURACION":
             key="cfg_plc_ip"
         )
     with col_sim:
-        usar_sim = st.checkbox("🧪 Habilitar Simulación Automática" if st.session_state['idioma'] == "ES" else "🧪 Enable Auto Simulation", value=True, help="Si no hay PLC real conectado, simulará señales según el tipo de variable (FLOAT, INT, BOOL).")
+        usar_sim = st.checkbox("🧪 Habilitar Simulación Automática" if st.session_state['idioma'] == "ES" else "🧪 Enable Auto Simulation", value=True)
 
     endpoint_calculado = f"opc.tcp://{plc_ip_input.strip()}:4840"
 
@@ -408,9 +373,7 @@ elif st.session_state['pantalla'] == "CONFIGURACION":
             st.session_state['pantalla'] = "INICIO"
             st.rerun()
 
-# ==============================================================================
-# PANTALLA 3: ENTORNO SCADA NEÓN CON SIMULACIÓN FLUIDA
-# ==============================================================================
+# PANTALLA 3: ENTORNO SCADA
 elif st.session_state['pantalla'] == "SCADA_MAIN":
     marca_plc = st.session_state.get('marca_plc', 'PLC_OPC_UA')
     opc_url = st.session_state.get('opc_url', 'opc.tcp://127.0.0.1:4840')
@@ -421,7 +384,6 @@ elif st.session_state['pantalla'] == "SCADA_MAIN":
     with col_btn:
         if st.button("🏠 Cambiar Servidor" if st.session_state['idioma'] == "ES" else "🏠 Switch Server", key="btn_exit", use_container_width=True):
             st.session_state['estoy_conectado'] = False
-            st.session_state['adquisicion_activa'] = False
             st.session_state['pantalla'] = "INICIO"
             st.rerun()
 
@@ -438,7 +400,6 @@ elif st.session_state['pantalla'] == "SCADA_MAIN":
         txt_sim = "🧪 Simulación Activa" if st.session_state['idioma'] == "ES" else "🧪 Simulated Data"
         txt_fail = "🔴 Fallo de Lectura" if st.session_state['idioma'] == "ES" else "🔴 Read Fail"
 
-        # Conexión OPC UA sólo si NO está en simulación
         client_opc = None
         if not modo_sim and OPCUA_AVAILABLE:
             try:
@@ -504,30 +465,8 @@ elif st.session_state['pantalla'] == "SCADA_MAIN":
             hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             registro_dict = {"Fecha_Hora": hora, **valores_actuales}
             row_df = pd.DataFrame([registro_dict])
-            st.session_state['mi_lista_de_datos'] = pd.concat([st.session_state['mi_lista_de_datos'], row_df], ignore_index=True).tail(200)
+            st.session_state['mi_lista_de_datos'] = pd.concat([st.session_state['mi_lista_de_datos'], row_df], ignore_index=True).tail(500)
 
-            if st.session_state['adquisicion_activa']:
-                ruta_escritorio = os.path.join(os.path.expanduser('~'), 'Desktop')
-                nombre_limpio = marca_plc.replace("/", "_").replace("\\", "_")
-                ruta_excel = os.path.join(ruta_escritorio, f"{nombre_limpio}.xlsx")
-
-                try:
-                    if OPENPYXL_AVAILABLE:
-                        if os.path.exists(ruta_excel):
-                            df_existente = pd.read_excel(ruta_excel, engine='openpyxl')
-                            df_actualizado = pd.concat([df_existente, row_df], ignore_index=True)
-                        else:
-                            df_actualizado = row_df
-
-                        df_actualizado.to_excel(ruta_excel, index=False, engine='openpyxl')
-                    else:
-                        ruta_csv = os.path.join(ruta_escritorio, f"{nombre_limpio}.csv")
-                        hdr = not os.path.exists(ruta_csv)
-                        row_df.to_csv(ruta_csv, mode='a', header=hdr, index=False)
-                except Exception:
-                    pass
-
-        # TAB 1: DIAGNÓSTICO
         with tab_mon:
             st.markdown(f"### Estado de Variables OPC UA ({marca_plc})" if st.session_state['idioma'] == "ES" else f"### OPC UA Variable Status ({marca_plc})")
             
@@ -589,7 +528,6 @@ elif st.session_state['pantalla'] == "SCADA_MAIN":
                         </div>
                         """, unsafe_allow_html=True)
 
-        # TAB 2: TENDENCIAS
         with tab_tre:
             st.markdown("### 📈 Tendencias OPC UA en Tiempo Real" if st.session_state['idioma'] == "ES" else "### 📈 Real-Time OPC UA Trends")
             opciones_vars = list(df_vars['Nombre de Variable'])
@@ -604,34 +542,27 @@ elif st.session_state['pantalla'] == "SCADA_MAIN":
                     )
                     st.plotly_chart(fig, use_container_width=True)
 
-        # TAB 3: HISTÓRICO Y REGISTRO EN EXCEL
         with tab_his:
-            st.markdown("### 💾 Adquisición de Datos a Archivo Excel en Escritorio" if st.session_state['idioma'] == "ES" else "### 💾 Excel Data Acquisition on Desktop")
+            st.markdown("### 📋 Histórico Registrado en Memoria" if st.session_state['idioma'] == "ES" else "### 📋 Recorded Data History")
             
-            nombre_archivo_escritorio = f"{marca_plc.replace('/', '_')}.xlsx"
-            ruta_visual = os.path.join(os.path.expanduser('~'), 'Desktop', nombre_archivo_escritorio)
-
-            st.info(f"📁 **Ruta de destino:** `{ruta_visual}`")
-
-            col_acq1, col_acq2 = st.columns(2)
-
-            with col_acq1:
-                if st.button("🟢 INICIAR ADQUISICIÓN EN EXCEL" if st.session_state['idioma'] == "ES" else "🟢 START EXCEL LOGGING", use_container_width=True, key="btn_on_acq"):
-                    st.session_state['adquisicion_activa'] = True
-                    st.rerun()
-
-            with col_acq2:
-                if st.button("🔴 DETENER ADQUISICIÓN EN EXCEL" if st.session_state['idioma'] == "ES" else "🔴 STOP EXCEL LOGGING", use_container_width=True, key="btn_off_acq"):
-                    st.session_state['adquisicion_activa'] = False
-                    st.rerun()
-
-            if st.session_state['adquisicion_activa']:
-                st.success(f"🟢 **ADQUISICIÓN ACTIVA:** Anexando datos a `{nombre_archivo_escritorio}`")
+            if not st.session_state['mi_lista_de_datos'].empty:
+                st.dataframe(st.session_state['mi_lista_de_datos'], use_container_width=True)
+                
+                # Conversión del DataFrame a archivo Excel en memoria
+                buffer = io.BytesIO()
+                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                    st.session_state['mi_lista_de_datos'].to_excel(writer, index=False, sheet_name='Historico_SCADA')
+                
+                st.markdown("---")
+                # Botón de Descarga Oficial de Streamlit
+                st.download_button(
+                    label="📥 Descargar Histórico en Excel (.xlsx)" if st.session_state['idioma'] == "ES" else "📥 Download History Excel (.xlsx)",
+                    data=buffer.getvalue(),
+                    file_name=f"historico_scada_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
             else:
-                st.warning("🔴 **ADQUISICIÓN DETENIDA:** Presione el botón verde para comenzar a registrar datos acumulativos en el Escritorio.")
-
-            st.markdown("---")
-            st.markdown("#### 📋 Vista Previa de Datos Registrados" if st.session_state['idioma'] == "ES" else "#### 📋 Recorded Data Preview")
-            st.dataframe(st.session_state['mi_lista_de_datos'].tail(15), use_container_width=True)
+                st.info("Aún no hay datos registrados en el historial." if st.session_state['idioma'] == "ES" else "No data recorded in history yet.")
 
     render_scada_live()
