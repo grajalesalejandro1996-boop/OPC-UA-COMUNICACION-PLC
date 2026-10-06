@@ -307,7 +307,7 @@ if st.session_state['pantalla'] == "INICIO":
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.image("siemens 1.jpg", use_container_width=True) 
+        st.image("Siemens 1.jpg", use_container_width=True) 
         if st.button("🚀 Conectar Siemens (OPC UA)" if st.session_state['idioma'] == "ES" else "🚀 Select Siemens (OPC UA)", key="btn_s7", use_container_width=True):
             st.session_state['marca_plc'] = "Siemens (OPC UA)"
             st.session_state['variables_config'] = obtener_variables_iniciales("Siemens (OPC UA)")
